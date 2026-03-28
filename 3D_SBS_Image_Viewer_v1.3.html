@@ -1,0 +1,1294 @@
+<!--
+3D SBS Image Viewer v1.3
+Copyright (C) 2025  NTM-3D
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+For a full copy of the GNU Affero General Public License see <https://www.gnu.org/licenses/>.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D SBS Image Viewer v1.3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+        }
+
+        #controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100;
+            max-width: 600px;
+        }
+
+        #controls h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .control-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .control-section h3 {
+            font-size: 18px;
+            color: #4da6ff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        #controls input[type="file"] {
+            display: none;
+        }
+
+        #controls .file-button {
+            padding: 12px 24px;
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            flex: 1;
+            max-width: 150px;
+        }
+
+        #controls .file-button:hover {
+            background: #555;
+        }
+
+        #selectedInfo {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+            min-height: 20px;
+        }
+
+        #controls label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+            color: #ddd;
+        }
+
+        #controls input[type="number"] {
+            padding: 8px;
+            width: 60px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+            margin-left: 5px;
+        }
+
+        #controls select {
+            padding: 8px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #controls select:hover {
+            background: #3a3a3a;
+        }
+
+        #controls input[type="range"] {
+            width: 150px;
+            margin: 10px 0;
+        }
+
+        #controls button {
+            margin: 15px 0;
+            padding: 15px 40px;
+            background: #0066cc;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #controls button:hover {
+            background: #0052a3;
+        }
+
+        .controls-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            border: 1px solid #444;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .controls-info h3 {
+            margin-bottom: 10px;
+            text-align: center;
+            color: #4da6ff;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+
+        .setting-row label {
+            margin: 0;
+            flex: 1;
+            text-align: left;
+        }
+
+        .setting-row input {
+            flex: 0 0 auto;
+        }
+
+        .slider-value {
+            display: inline-block;
+            min-width: 30px;
+            margin-left: 10px;
+        }
+
+        #controls h4 {
+            margin-top: 20px;
+            color: #888;
+            font-weight: normal;
+        }
+
+        .version {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        #viewer {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            position: relative;
+        }
+
+        #viewer.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #imageContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #outputCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+		
+		#viewer.hide-cursor, #viewer.hide-cursor * {
+			cursor: none !important;
+		}
+
+        #osdContainer {
+            position: absolute;
+            top: 5%;
+            left: 0;
+            width: 100%;
+            height: 15%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #osdContainer.show {
+            opacity: 1;
+        }
+
+        #osdCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #infoContainer {
+            position: absolute;
+            top: 22%;
+            left: 0;
+            width: 100%;
+            height: 35%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #infoContainer.show {
+            opacity: 1;
+        }
+
+        #infoCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>3D SBS Image Viewer</h1>
+        
+        <!-- File Selection Section -->
+        <div class="control-section">
+            <h3>Select Images</h3>
+            <div class="button-group">
+                <input type="file" id="fileInput" accept="image/*" multiple>
+                <button class="file-button" id="fileBtn">Select Files</button>
+                <button class="file-button" id="folderBtn">Select Folder</button>
+            </div>
+            <div id="selectedInfo">No images selected</div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="control-section">
+            <h3>Settings</h3>
+            <div class="setting-row">
+                <label for="interval">Slideshow interval (seconds):</label>
+                <input type="number" id="interval" value="5" min="1" max="60">
+            </div>
+            <div class="setting-row">
+                <label for="sortOrder">Sort images by:</label>
+                <select id="sortOrder">
+                    <option value="name-asc" selected>Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="date-asc">Date (Oldest First)</option>
+                    <option value="date-desc">Date (Newest First)</option>
+                    <option value="size-asc">Size (Smallest First)</option>
+                    <option value="size-desc">Size (Largest First)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="parallax">OSD 3D depth:</label>
+                <div>
+                    <input type="range" id="parallax" min="-30" max="30" value="15" step="1">
+                    <span class="slider-value" id="parallaxValue">15</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="startBtn">Start Viewer</button>
+
+		<!-- Controls Info Section -->
+		<div class="controls-info">
+			<h3>Controls</h3>
+			<strong>Left/Right or Back/Forward buttons:</strong> Navigate images<br>
+			<strong>Spacebar or Wheel click:</strong> Start/stop slideshow<br>
+			<strong>I:</strong> Toggle info display<br>
+			<strong>O:</strong> Expand/collapse info details<br>
+			<strong>Right Click:</strong> Cycle info/expanded info display<br>
+			<strong>0:</strong> Reset zoom and pan<br>
+			<strong>Mouse wheel scroll:</strong> Zoom in/out<br>
+			<strong>Click & Drag:</strong> Pan image<br>
+			<strong>Escape:</strong> Exit fullscreen
+		</div>
+
+		<h4>Made by: NTM-3D</h4>
+		<div class="version">v1.3</div>
+		</div>
+
+
+    <div id="viewer">
+        <div id="imageContainer">
+            <canvas id="outputCanvas"></canvas>
+            <div id="osdContainer">
+                <canvas id="osdCanvas"></canvas>
+            </div>
+            <div id="infoContainer">
+                <canvas id="infoCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+		<script>
+		let images = [];
+		let currentIndex = 0;
+		let slideshowInterval = null;
+		let intervalSeconds = 5;
+		let zoomLevel = 1;
+		let panX = 0;
+		let panY = 0;
+		let isDragging = false;
+		let dragStartX = 0;
+		let dragStartY = 0;
+		let currentImage = null;
+        let currentFile = null;
+        let parallaxAmount = 15;
+        let showInfo = false;
+        let infoExpanded = false;
+
+		// Inactivity/cursor hide
+		let inactivityTimer = null;
+		const INACTIVITY_MS = 2000;
+
+        // OSD
+        let osdTimer = null;
+        const OSD_DISPLAY_MS = 1500;
+        let skipDirection = null; // 'left' or 'right'
+
+		const fileBtn   = document.getElementById('fileBtn');
+		const fileInput = document.getElementById('fileInput');
+		const intervalInput = document.getElementById('interval');
+        const sortOrderSelect = document.getElementById('sortOrder');
+        const parallaxInput = document.getElementById('parallax');
+        const parallaxValue = document.getElementById('parallaxValue');
+		const startBtn = document.getElementById('startBtn');
+        const folderBtn = document.getElementById('folderBtn');
+        const selectedInfo = document.getElementById('selectedInfo');
+		const controls = document.getElementById('controls');
+		const viewer = document.getElementById('viewer');
+		const outputCanvas = document.getElementById('outputCanvas');
+        const osdContainer = document.getElementById('osdContainer');
+        const osdCanvas = document.getElementById('osdCanvas');
+        const infoContainer = document.getElementById('infoContainer');
+        const infoCanvas = document.getElementById('infoCanvas');
+		
+		fileBtn.addEventListener('click', () => {
+		  fileInput.click();
+		});
+
+		fileInput.addEventListener('change', (e) => {
+			const files = Array.from(e.target.files);
+			images = files.filter(f => f.type.startsWith('image/'));
+            sortImages();
+            updateSelectedInfo();
+		});
+
+        folderBtn.addEventListener('click', async () => {
+            try {
+                // Check if File System Access API is supported
+                if (!window.showDirectoryPicker) {
+                    alert('Folder selection is not supported in your browser. Please use a Chromium-based browser (Chrome, Edge, etc.) or select files instead.');
+                    return;
+                }
+
+                const dirHandle = await window.showDirectoryPicker();
+                images = await getAllImagesFromDirectory(dirHandle);
+                sortImages();
+                updateSelectedInfo();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Error selecting folder:', err);
+                    alert('Error selecting folder. Please try again or use file selection instead.');
+                }
+            }
+        });
+
+        async function getAllImagesFromDirectory(dirHandle, path = '') {
+            let imageFiles = [];
+            
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file') {
+                    const file = await entry.getFile();
+                    if (file.type.startsWith('image/')) {
+                        imageFiles.push(file);
+                    }
+                } else if (entry.kind === 'directory') {
+                    // Recursively get images from subdirectories
+                    const subImages = await getAllImagesFromDirectory(entry, path + entry.name + '/');
+                    imageFiles = imageFiles.concat(subImages);
+                }
+            }
+            
+            return imageFiles;
+        }
+
+        function updateSelectedInfo() {
+            if (images.length === 0) {
+                selectedInfo.textContent = 'No images selected';
+            } else if (images.length === 1) {
+                selectedInfo.textContent = '1 image selected';
+            } else {
+                selectedInfo.textContent = `${images.length} images selected`;
+            }
+        }
+
+        function sortImages() {
+            const sortOrder = sortOrderSelect.value;
+            
+            switch(sortOrder) {
+                case 'name-asc':
+                    images.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'name-desc':
+                    images.sort((a, b) => b.name.localeCompare(a.name));
+                    break;
+                case 'date-asc':
+                    images.sort((a, b) => a.lastModified - b.lastModified);
+                    break;
+                case 'date-desc':
+                    images.sort((a, b) => b.lastModified - a.lastModified);
+                    break;
+                case 'size-asc':
+                    images.sort((a, b) => a.size - b.size);
+                    break;
+                case 'size-desc':
+                    images.sort((a, b) => b.size - a.size);
+                    break;
+            }
+        }
+
+        parallaxInput.addEventListener('input', (e) => {
+            parallaxAmount = parseInt(e.target.value);
+            parallaxValue.textContent = parallaxAmount;
+        });
+
+        sortOrderSelect.addEventListener('change', () => {
+            if (images.length > 0) {
+                sortImages();
+            }
+        });
+
+		startBtn.addEventListener('click', () => {
+			if (images.length === 0) {
+				alert('Please select images first');
+				return;
+			}
+			intervalSeconds = parseInt(intervalInput.value);
+            parallaxAmount = parseInt(parallaxInput.value);
+            sortImages(); // Sort images before starting viewer
+			controls.style.display = 'none';
+			viewer.classList.add('active');
+			currentIndex = 0;
+			loadImage(currentIndex);
+			enterFullscreen();
+			// Reset slideshow timer on start
+			resetSlideshowTimer();
+			// Start inactivity tracking
+			resetInactivity();
+		});
+
+		function loadImage(index) {
+			if (index < 0 || index >= images.length) return;
+
+			// Reset zoom and pan when changing images
+			zoomLevel = 1;
+			panX = 0;
+			panY = 0;
+
+            currentFile = images[index];
+
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				const img = new Image();
+				img.onload = () => {
+					currentImage = img;
+					processImage(img);
+                    if (showInfo) {
+                        updateInfoDisplay();
+                    }
+				};
+				img.src = e.target.result;
+			};
+			reader.readAsDataURL(images[index]);
+		}
+
+		function processImage(img) {
+			const srcWidth = img.width;
+			const srcHeight = img.height;
+			const halfWidth = srcWidth / 2;
+
+			// Each eye’s original aspect ratio
+			const eyeAspectRatio = halfWidth / srcHeight;
+
+			// After 0.5x horizontal squeeze
+			const squeezedAspectRatio = eyeAspectRatio * 0.5;
+
+			// Target per-eye viewport is exactly half the canvas
+			const outputWidth = window.innerWidth;
+			const outputHeight = window.innerHeight;
+			outputCanvas.width = outputWidth;
+			outputCanvas.height = outputHeight;
+
+			const eyeViewWidth = outputWidth / 2;
+			const eyeViewHeight = outputHeight;
+
+			// Scale squeezed image to fit inside eye viewport
+			let squeezedWidth, squeezedHeight;
+			if (squeezedAspectRatio > eyeViewWidth / eyeViewHeight) {
+				// Fit to width
+				squeezedWidth = eyeViewWidth;
+				squeezedHeight = squeezedWidth / squeezedAspectRatio;
+			} else {
+				// Fit to height
+				squeezedHeight = eyeViewHeight;
+				squeezedWidth = squeezedHeight * squeezedAspectRatio;
+			}
+
+			const ctx = outputCanvas.getContext('2d');
+			ctx.fillStyle = '#000';
+			ctx.fillRect(0, 0, outputWidth, outputHeight);
+
+			// Crop source halves (with zoom/pan)
+			const cropWidth = halfWidth / zoomLevel;
+			const cropHeight = srcHeight / zoomLevel;
+			const panXInSrc = -panX / (squeezedWidth / halfWidth) / zoomLevel;
+			const panYInSrc = -panY / outputHeight * srcHeight / zoomLevel;
+
+			let leftCropX = (halfWidth - cropWidth) / 2 + panXInSrc;
+			let leftCropY = (srcHeight - cropHeight) / 2 + panYInSrc;
+			leftCropX = Math.max(0, Math.min(leftCropX, halfWidth - cropWidth));
+			leftCropY = Math.max(0, Math.min(leftCropY, srcHeight - cropHeight));
+
+			let rightCropX = (halfWidth - cropWidth) / 2 + panXInSrc;
+			let rightCropY = (srcHeight - cropHeight) / 2 + panYInSrc;
+			rightCropX = Math.max(0, Math.min(rightCropX, halfWidth - cropWidth));
+			rightCropY = Math.max(0, Math.min(rightCropY, srcHeight - cropHeight));
+
+			// Draw left eye
+			ctx.drawImage(
+				img,
+				leftCropX, leftCropY, cropWidth, cropHeight,
+				(eyeViewWidth - squeezedWidth) / 2,
+				(eyeViewHeight - squeezedHeight) / 2,
+				squeezedWidth, squeezedHeight
+			);
+
+			// Draw right eye
+			ctx.drawImage(
+				img,
+				halfWidth + rightCropX, rightCropY, cropWidth, cropHeight,
+				eyeViewWidth + (eyeViewWidth - squeezedWidth) / 2,
+				(eyeViewHeight - squeezedHeight) / 2,
+				squeezedWidth, squeezedHeight
+			);															  
+		}
+		function nextImage(showSkip = false) {
+			currentIndex = (currentIndex + 1) % images.length;
+			loadImage(currentIndex);
+            if (showSkip) {
+                showSkipOSD('right');
+            }
+		}
+
+		function prevImage(showSkip = false) {
+			currentIndex = (currentIndex - 1 + images.length) % images.length;
+			loadImage(currentIndex);
+            if (showSkip) {
+                showSkipOSD('left');
+            }
+		}
+
+		function startSlideshow() {
+			if (!slideshowInterval) {
+				slideshowInterval = setInterval(nextImage, intervalSeconds * 1000);
+                showOSD(true);
+			}
+		}
+
+		function stopSlideshow() {
+			if (slideshowInterval) {
+				clearInterval(slideshowInterval);
+				slideshowInterval = null;
+                showOSD(false);
+			}
+		}
+
+		function resetSlideshowTimer() {
+			// If running, restart with fresh interval. If stopped, do nothing beyond clearing.
+			if (slideshowInterval) {
+				stopSlideshow();
+				startSlideshow();
+			}
+		}
+
+		function toggleSlideshow() {
+			if (slideshowInterval) {
+				stopSlideshow();
+				// Reset timer state (kept stopped)
+				resetSlideshowTimer();
+			} else {
+				startSlideshow();
+				// Ensure fresh start
+				resetSlideshowTimer();
+			}
+		}
+
+        function showOSD(isPlaying) {
+            skipDirection = null; // Clear skip direction when showing play/pause
+            
+            // Set canvas size to match container
+            const rect = osdContainer.getBoundingClientRect();
+            osdCanvas.width = rect.width;
+            osdCanvas.height = rect.height;
+
+            const ctx = osdCanvas.getContext('2d');
+            ctx.clearRect(0, 0, osdCanvas.width, osdCanvas.height);
+
+            // Icon size - small
+            const iconSize = Math.min(osdCanvas.width, osdCanvas.height) * 0.15;
+            
+            // Each eye sees half the canvas (16:9)
+            const eyeWidth = osdCanvas.width / 2;
+            
+            // Calculate squeezed image width within 16:9 eye view
+            // This is resolution-independent and works for any aspect ratio
+            const imageWidth = eyeWidth * 0.75;  // Assuming centered content takes 75% of eye width
+            
+            // Black bar width on each side
+            const blackBarWidth = (eyeWidth - imageWidth) / 2;
+            
+            // Image right edge
+            const imageRightEdge = eyeWidth / 2 + imageWidth / 2;
+            
+            // Right black bar center
+            const rightBlackBarCenter = imageRightEdge + blackBarWidth / 2;
+            
+            // Left eye icon position
+            const leftEyeIconX = rightBlackBarCenter;
+            
+            // Right eye icon position (offset by eyeWidth)
+            const rightEyeIconX = eyeWidth + rightBlackBarCenter;
+            
+            const iconY = iconSize * 0.7;
+            
+            // 3D separation (positive = pop out toward viewer)
+            const separation = (parallaxAmount / 100) * iconSize;
+
+            // Draw icon for left eye (shift right for pop-out)
+            drawIcon(ctx, leftEyeIconX + separation, iconY, iconSize, isPlaying);
+            
+            // Draw icon for right eye (shift left for pop-out)
+            drawIcon(ctx, rightEyeIconX - separation, iconY, iconSize, isPlaying);
+
+            // Show OSD
+            osdContainer.classList.add('show');
+            
+            // Hide after timeout
+            clearTimeout(osdTimer);
+            osdTimer = setTimeout(() => {
+                osdContainer.classList.remove('show');
+            }, OSD_DISPLAY_MS);
+        }
+
+        function showSkipOSD(direction) {
+            skipDirection = direction;
+            
+            // Set canvas size to match container
+            const rect = osdContainer.getBoundingClientRect();
+            osdCanvas.width = rect.width;
+            osdCanvas.height = rect.height;
+
+            const ctx = osdCanvas.getContext('2d');
+            ctx.clearRect(0, 0, osdCanvas.width, osdCanvas.height);
+
+            // Icon size - small
+            const iconSize = Math.min(osdCanvas.width, osdCanvas.height) * 0.15;
+            
+            // Each eye sees half the canvas (16:9)
+            const eyeWidth = osdCanvas.width / 2;
+            
+            // Calculate squeezed image width
+            const imageWidth = eyeWidth * 0.75;
+            
+            // Black bar width on each side
+            const blackBarWidth = (eyeWidth - imageWidth) / 2;
+            
+            // Image right edge
+            const imageRightEdge = eyeWidth / 2 + imageWidth / 2;
+            
+            // Right black bar center
+            const rightBlackBarCenter = imageRightEdge + blackBarWidth / 2;
+            
+            // Left eye icon position
+            const leftEyeIconX = rightBlackBarCenter;
+            
+            // Right eye icon position (offset by eyeWidth)
+            const rightEyeIconX = eyeWidth + rightBlackBarCenter;
+            
+            const iconY = iconSize * 0.7;
+            
+            // 3D separation (positive = pop out toward viewer)
+            const separation = (parallaxAmount / 100) * iconSize;
+
+            // Draw skip icon for left eye (shift right for pop-out)
+            drawSkipIcon(ctx, leftEyeIconX + separation, iconY, iconSize, direction);
+            
+            // Draw skip icon for right eye (shift left for pop-out)
+            drawSkipIcon(ctx, rightEyeIconX - separation, iconY, iconSize, direction);
+
+            // Show OSD
+            osdContainer.classList.add('show');
+            
+            // Hide after timeout
+            clearTimeout(osdTimer);
+            osdTimer = setTimeout(() => {
+                osdContainer.classList.remove('show');
+                skipDirection = null;
+            }, OSD_DISPLAY_MS);
+        }
+
+        function drawIcon(ctx, x, y, size, isPlaying) {
+            ctx.save();
+            
+            // Apply horizontal squeeze (0.5x width for anamorphic)
+            ctx.translate(x, y);
+            ctx.scale(0.5, 1);
+            ctx.translate(-x, -y);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = size * 0.08;
+
+            if (isPlaying) {
+                // Draw play icon (triangle) - shows when playing
+                const triangleSize = size * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(x - size/2 - triangleSize * 0.3, y);
+                ctx.lineTo(x - size/2 - triangleSize * 0.3, y + triangleSize);
+                ctx.lineTo(x - size/2 + triangleSize * 0.5, y + triangleSize / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                // Draw pause icon (two bars) - shows when paused
+                const barWidth = size * 0.25;
+                const barHeight = size * 0.8;
+                const gap = size * 0.2;
+                
+                // Left bar
+                ctx.fillRect(x - size/2 - gap / 2 - barWidth, y, barWidth, barHeight);
+                ctx.strokeRect(x - size/2 - gap / 2 - barWidth, y, barWidth, barHeight);
+                
+                // Right bar
+                ctx.fillRect(x - size/2 + gap / 2, y, barWidth, barHeight);
+                ctx.strokeRect(x - size/2 + gap / 2, y, barWidth, barHeight);
+            }
+
+            ctx.restore();
+        }
+
+        function drawSkipIcon(ctx, x, y, size, direction) {
+            ctx.save();
+            
+            // Apply horizontal squeeze (0.5x width for anamorphic)
+            ctx.translate(x, y);
+            ctx.scale(0.5, 1);
+            ctx.translate(-x, -y);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = size * 0.08;
+
+            const arrowSize = size * 0.7;
+            
+            if (direction === 'right') {
+                // Two right-pointing triangles (fast forward)
+                // First triangle
+                ctx.beginPath();
+                ctx.moveTo(x - size/2 - arrowSize * 0.4, y);
+                ctx.lineTo(x - size/2 - arrowSize * 0.4, y + arrowSize);
+                ctx.lineTo(x - size/2 + arrowSize * 0.2, y + arrowSize / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // Second triangle
+                ctx.beginPath();
+                ctx.moveTo(x - size/2 + arrowSize * 0.1, y);
+                ctx.lineTo(x - size/2 + arrowSize * 0.1, y + arrowSize);
+                ctx.lineTo(x - size/2 + arrowSize * 0.7, y + arrowSize / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                // Two left-pointing triangles (rewind)
+                // First triangle
+                ctx.beginPath();
+                ctx.moveTo(x - size/2 + arrowSize * 0.4, y);
+                ctx.lineTo(x - size/2 + arrowSize * 0.4, y + arrowSize);
+                ctx.lineTo(x - size/2 - arrowSize * 0.2, y + arrowSize / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // Second triangle
+                ctx.beginPath();
+                ctx.moveTo(x - size/2 - arrowSize * 0.1, y);
+                ctx.lineTo(x - size/2 - arrowSize * 0.1, y + arrowSize);
+                ctx.lineTo(x - size/2 - arrowSize * 0.7, y + arrowSize / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+		
+		function formatAspectRatio(width, height) {
+			const ratio = width / height;
+
+			// Common per-eye aspect ratios
+			const standards = [
+				{ w: 4,  h: 3 },
+				{ w: 16, h: 9 },
+				{ w: 3,  h: 2 },
+				{ w: 5,  h: 4 },
+				{ w: 7,  h: 5 },
+				{ w: 1,  h: 1 },
+				{ w: 21, h: 9 },
+				{ w: 32, h: 9 },
+				{ w: 16, h: 10 }
+			];
+
+			// Check against standards
+			for (const std of standards) {
+				const stdRatio = std.w / std.h;
+				const diff = Math.abs(ratio - stdRatio) / stdRatio;
+
+				if (diff === 0) {
+					// Exact match
+					return `${std.w}:${std.h}`;
+				} else if (diff <= 0.05) {
+					// Within 5%
+					return `≈ ${std.w}:${std.h}`;
+				}
+			}
+
+			// Otherwise, reduce and round to nearest whole numbers
+			function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+			const divisor = gcd(width, height);
+			const w = Math.round(width / divisor);
+			const h = Math.round(height / divisor);
+			return `${w}:${h}`;
+		}
+
+        function updateInfoDisplay() {
+            if (!currentFile || !currentImage) return;
+
+            const rect = infoContainer.getBoundingClientRect();
+            infoCanvas.width = rect.width;
+            infoCanvas.height = rect.height;
+
+            const ctx = infoCanvas.getContext('2d');
+            ctx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
+
+            // Each eye sees half the canvas (16:9)
+            const eyeWidth = infoCanvas.width / 2;
+            
+            // Calculate squeezed image width (resolution-independent)
+            const imageWidth = eyeWidth * 0.75;
+            
+            // Black bar width on each side
+            const blackBarWidth = (eyeWidth - imageWidth) / 2;
+            
+            // Image right edge
+            const imageRightEdge = eyeWidth / 2 + imageWidth / 2;
+            
+            // Right black bar center
+            const rightBlackBarCenter = imageRightEdge + blackBarWidth / 2;
+            
+            // Position for each eye
+            const leftEyeBoxX = rightBlackBarCenter;
+            const rightEyeBoxX = eyeWidth + rightBlackBarCenter;
+            
+            // 3D separation
+            const separation = (parallaxAmount / 100) * 50;
+
+            // Get file info
+            const fileName = currentFile.name;
+            const perEyeResolution = `${currentImage.width / 2} x ${currentImage.height}`;
+			const perEyeAspect = formatAspectRatio(currentImage.width / 2, currentImage.height);
+            const totalResolution = `${currentImage.width} x ${currentImage.height}`;
+            const fileSize = formatFileSize(currentFile.size);
+            const lastModified = new Date(currentFile.lastModified);
+            const dateStr = formatDate(lastModified);
+            const imageInfo = `Image ${currentIndex + 1} of ${images.length}`;
+
+            // Draw left eye info box (shift right for pop-out)
+            drawInfoBox(ctx, leftEyeBoxX + separation, infoCanvas.height / 2, imageInfo, fileName, dateStr, totalResolution, perEyeResolution, perEyeAspect, fileSize);
+            
+            // Draw right eye info box (shift left for pop-out)
+            drawInfoBox(ctx, rightEyeBoxX - separation, infoCanvas.height / 2, imageInfo, fileName, dateStr, totalResolution, perEyeResolution, perEyeAspect, fileSize);
+        }
+
+		function drawInfoBox(ctx, centerX, centerY, imageInfo, fileName, dateStr, totalResolution, perEyeResolution, perEyeAspect, fileSize) {
+			ctx.save();
+			ctx.translate(centerX, centerY);
+			ctx.scale(0.5, 1); // anamorphic squeeze
+			ctx.translate(-centerX, -centerY);
+
+			const w = ctx.canvas.width;
+			const h = ctx.canvas.height;
+
+			// Scale dimensions
+			const padding      = h * 0.02;   // 2% of height
+			const lineHeight   = h * 0.050;  // 5% of height
+			const fontSize     = h * 0.035;  // 3.5% of height
+			const boxWidth     = w * 0.090;  // 9% of canvas width (wider box)
+			const cornerRadius = h * 0.015;  // 1.5% of height
+			const arrowSpace   = h * 0.025;  // smaller reserved space
+			const arrowSize    = h * 0.008;  // smaller arrow
+			const strokeWidth  = h * 0.006;  // border thickness
+
+			const baseLines = 3;
+			const expandedLines = infoExpanded ? 4 : 0;
+			const boxHeight = lineHeight * (baseLines + expandedLines) + padding * 2 + arrowSpace;
+
+			const boxX = centerX - boxWidth / 2;
+			const boxY = centerY - boxHeight / 2;
+
+			// Background
+			ctx.fillStyle = 'rgba(0,0,0,0.8)';
+			ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+			ctx.lineWidth = strokeWidth;
+
+			ctx.beginPath();
+			ctx.moveTo(boxX + cornerRadius, boxY);
+			ctx.lineTo(boxX + boxWidth - cornerRadius, boxY);
+			ctx.arcTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + cornerRadius, cornerRadius);
+			ctx.lineTo(boxX + boxWidth, boxY + boxHeight - cornerRadius);
+			ctx.arcTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - cornerRadius, boxY + boxHeight, cornerRadius);
+			ctx.lineTo(boxX + cornerRadius, boxY + boxHeight);
+			ctx.arcTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - cornerRadius, cornerRadius);
+			ctx.lineTo(boxX, boxY + cornerRadius);
+			ctx.arcTo(boxX, boxY, boxX + cornerRadius, boxY, cornerRadius);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+
+			// Text
+			ctx.fillStyle = 'rgba(255,255,255,0.95)';
+			ctx.font = `${fontSize}px Arial`;
+			ctx.textBaseline = 'top';
+
+			let y = boxY + padding;
+			ctx.fillText(imageInfo, boxX + padding, y); y += lineHeight * 1.25; // Add a little extra space
+			ctx.fillText(`${truncateText(ctx, fileName, boxWidth - (fontSize * 1))}`, boxX + padding, y); y += lineHeight;
+			ctx.fillText(`Date: ${dateStr}`, boxX + padding, y); y += lineHeight;
+			if (infoExpanded) {
+				ctx.fillText(`Total: ${totalResolution}`, boxX + padding, y); y += lineHeight;
+				ctx.fillText(`Per eye: ${perEyeResolution}`, boxX + padding, y); y += lineHeight;
+				ctx.fillText(`Aspect ratio: ${perEyeAspect}`, boxX + padding, y); y += lineHeight;
+				ctx.fillText(`Size: ${fileSize}`, boxX + padding, y);
+			}
+
+			// Expand/collapse arrow
+			const arrowX = centerX;
+			const arrowY = boxY + boxHeight - padding - arrowSize;
+
+			ctx.beginPath();
+			if (infoExpanded) {
+				// Up arrow
+				ctx.moveTo(arrowX - arrowSize, arrowY + arrowSize);
+				ctx.lineTo(arrowX + arrowSize, arrowY + arrowSize);
+				ctx.lineTo(arrowX, arrowY - arrowSize);
+			} else {
+				// Down arrow
+				ctx.moveTo(arrowX - arrowSize, arrowY - arrowSize);
+				ctx.lineTo(arrowX + arrowSize, arrowY - arrowSize);
+				ctx.lineTo(arrowX, arrowY + arrowSize);
+			}
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+
+			ctx.restore();
+		}
+
+        function truncateText(ctx, text, maxWidth) {
+            if (ctx.measureText(text).width <= maxWidth) {
+                return text;
+            }
+            let truncated = text;
+            while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 0) {
+                truncated = truncated.slice(0, -1);
+            }
+            return truncated + '...';
+        }
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+            else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+            else return (bytes / 1073741824).toFixed(2) + ' GB';
+        }
+
+        function toggleInfo() {
+            showInfo = !showInfo;
+            if (showInfo) {
+                updateInfoDisplay();
+                infoContainer.classList.add('show');
+            } else {
+                infoContainer.classList.remove('show');
+                infoExpanded = false; // Reset expansion when hiding
+            }
+        }
+
+        function toggleInfoExpansion() {
+            if (!showInfo) return;
+            infoExpanded = !infoExpanded;
+            updateInfoDisplay();
+        }
+
+		function enterFullscreen() {
+			if (viewer.requestFullscreen) {
+				viewer.requestFullscreen();
+			} else if (viewer.webkitRequestFullscreen) {
+				viewer.webkitRequestFullscreen();
+			} else if (viewer.msRequestFullscreen) {
+				viewer.msRequestFullscreen();
+			}
+		}
+
+		function exitViewer() {
+			if (document.exitFullscreen) {
+				document.exitFullscreen();
+			} else if (document.webkitExitFullscreen) {
+				document.webkitExitFullscreen();
+			} else if (document.msExitFullscreen) {
+				document.msExitFullscreen();
+			}
+
+			stopSlideshow();
+
+			viewer.classList.remove('active');
+			controls.style.display = 'block';
+
+			// Show cursor and clear inactivity timer
+			showCursor();
+			clearTimeout(inactivityTimer);
+			inactivityTimer = null;
+            
+            // Clear OSD and info
+            osdContainer.classList.remove('show');
+            infoContainer.classList.remove('show');
+            clearTimeout(osdTimer);
+            showInfo = false;
+		}
+
+		// Keyboard buttons
+		document.addEventListener('keydown', (e) => {
+		  if (!viewer.classList.contains('active')) return;
+
+		  if (e.key === 'ArrowRight') {
+			nextImage(true);
+			resetSlideshow();
+		  } else if (e.key === 'ArrowLeft') {
+			prevImage(true);
+			resetSlideshow();
+		  } else if (e.key === ' ') {
+			e.preventDefault();
+			toggleSlideshow();
+		  } else if (e.key === 'Escape') {
+			exitViewer();
+		  } else if (e.key === '0') {
+			zoomLevel = 1;
+			panX = 0;
+			panY = 0;
+			if (currentImage) processImage(currentImage);
+		  } else if (e.key.toLowerCase() === 'i') {
+			toggleInfo();
+		  } else if (e.key.toLowerCase() === 'o') {
+			toggleInfoExpansion();
+		  }
+		});
+
+		// Mouse buttons
+		let rightClickCount = 0;
+
+		document.addEventListener('mousedown', (e) => {
+		  if (!viewer.classList.contains('active')) return;
+
+		  if (e.button === 2) { // Right click
+			rightClickCount++;
+
+			if (rightClickCount === 1) {
+			  toggleInfo(); // same as "i"
+			} else if (rightClickCount === 2) {
+			  toggleInfoExpansion(); // same as "o"
+			} else if (rightClickCount === 3) {
+			  toggleInfo();          // and "i"
+			  toggleInfoExpansion(); // "o"
+			  rightClickCount = 0;   // reset after third
+			}
+
+			e.preventDefault(); // stop context menu
+		  }
+
+		  if (e.button === 4) { // Forward button
+			nextImage(true);
+			resetSlideshow();
+			e.preventDefault();
+		  } else if (e.button === 3) { // Back button
+			prevImage(true);
+			resetSlideshow();
+			e.preventDefault();
+		  } else if (e.button === 1) { // Middle button (wheel click)
+			toggleSlideshow(); // same as space
+			e.preventDefault();
+		  }
+		});
+		
+		// Block contextmenu
+		viewer.addEventListener('contextmenu', (e) => {
+		  if (!viewer.classList.contains('active')) return;
+		  e.preventDefault();
+		});
+		
+		// Helper to reset slideshow
+		function resetSlideshow() {
+		  if (slideshowInterval) {
+			clearInterval(slideshowInterval);
+			slideshowInterval = setInterval(nextImage, intervalSeconds * 1000);
+		  }
+		}
+
+		outputCanvas.addEventListener('wheel', (e) => {
+			if (!viewer.classList.contains('active')) return;
+			e.preventDefault();
+
+			showCursor();
+			resetInactivity();
+
+			const delta = e.deltaY > 0 ? 0.9 : 1.1;
+			const newZoom = zoomLevel * delta;
+
+			// Prevent zooming out past default (1.0)
+			if (newZoom < 1) {
+				zoomLevel = 1;
+				panX = 0;
+				panY = 0;
+			} else {
+				zoomLevel = newZoom;
+			}
+
+			if (currentImage) processImage(currentImage);
+		});
+
+		outputCanvas.addEventListener('mousedown', (e) => {
+			if (!viewer.classList.contains('active')) return;
+            
+			isDragging = true;
+			dragStartX = e.clientX - panX;
+			dragStartY = e.clientY - panY;
+			outputCanvas.style.cursor = 'grabbing';
+			showCursor();
+			resetInactivity();
+		});
+
+		outputCanvas.addEventListener('mousemove', (e) => {
+			if (!viewer.classList.contains('active')) return;
+
+			showCursor();
+			resetInactivity();
+
+			if (!isDragging) return;
+
+			panX = e.clientX - dragStartX;
+			panY = e.clientY - dragStartY;
+
+			if (currentImage) processImage(currentImage);
+		});
+
+		outputCanvas.addEventListener('mouseup', () => {
+			isDragging = false;
+			outputCanvas.style.cursor = 'grab';
+			showCursor();
+			resetInactivity();
+		});
+
+		outputCanvas.addEventListener('mouseleave', () => {
+			isDragging = false;
+			outputCanvas.style.cursor = 'grab';
+			showCursor();
+			resetInactivity();
+		});
+
+		// Set initial cursor
+		outputCanvas.style.cursor = 'grab';
+
+		document.addEventListener('fullscreenchange', () => {
+			if (!document.fullscreenElement) {
+				exitViewer();
+			}
+		});
+
+		// Inactivity handling
+		function showCursor() {
+			viewer.classList.remove('hide-cursor');
+		}
+		function hideCursor() {
+			viewer.classList.add('hide-cursor');
+		}
+		function resetInactivity() {
+			if (!viewer.classList.contains('active')) return;
+			showCursor();
+			clearTimeout(inactivityTimer);
+			inactivityTimer = setTimeout(() => {
+				hideCursor();
+			}, INACTIVITY_MS);
+		}
+
+		// Also track document-level mouse movement to unhide cursor quickly
+		document.addEventListener('mousemove', () => {
+			if (!viewer.classList.contains('active')) return;
+			showCursor();
+			resetInactivity();
+		});
+	</script>
+</body>
+</html>
