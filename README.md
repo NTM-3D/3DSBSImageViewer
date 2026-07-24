@@ -3,6 +3,8 @@
 A browser-based viewer for full SBS 3D images, designed for use on 3D displays that require half SBS images.  
 No installation required — just open the HTML file and go.
 
+https://ntm-3d.github.io/3DSBSImageViewer/3D_SBS_Image_Viewer_v1.3.html
+
 ---
 
 ## Features
